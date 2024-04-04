@@ -20,6 +20,16 @@ class SplineChart extends StatelessWidget {
   /// Each key in the hash map represents the X position and it's value as the Y position
   final Map<double, double> values;
 
+  /// Should the X axis line be drawn?
+  ///
+  /// Defaults to true
+  final bool drawXAxis;
+
+  /// Should the Y axis line be drawn?
+  ///
+  /// Defaults to true
+  final bool drawYAxis;
+
   /// Start of the X axis
   ///
   /// Defaults to 0
@@ -30,6 +40,16 @@ class SplineChart extends StatelessWidget {
   /// Defaults to 100
   final double xEnd;
 
+  /// Start of the Y axis
+  ///
+  /// Defaults to minimum of the data values
+  final double? yStart;
+
+  /// End of the Y axis
+  ///
+  /// Defaults to maximum of the data values
+  final double? yEnd;
+
   /// The X axis lable intervals
   ///
   /// Defaults to 10
@@ -37,6 +57,11 @@ class SplineChart extends StatelessWidget {
 
   /// Color of the line being drawn
   final Color lineColor;
+
+  /// If true, grid lines will be drawn
+  ///
+  /// Default to true
+  final bool gridLinesEnabled;
 
   /// Color of the grid lines
   final Color gridLineColor;
@@ -49,6 +74,11 @@ class SplineChart extends StatelessWidget {
 
   /// Thickness of the line
   final double strokeWidth;
+
+  /// If true, fill underneath the spline will be drawn
+  ///
+  /// Default to true
+  final bool fillEnabled;
 
   /// Color of the fill
   final Color fillColor;
@@ -91,13 +121,19 @@ class SplineChart extends StatelessWidget {
       this.width = 320.0,
       this.height = 200.0,
       this.lineColor = Colors.black,
+      this.gridLinesEnabled = true,
       this.gridLineColor = Colors.grey,
       this.textColor = Colors.grey,
       this.textSize = 14,
+      this.drawXAxis = true,
+      this.drawYAxis = true,
       this.xStart = 0,
       this.xEnd = 100,
+      this.yStart,
+      this.yEnd,
       this.xStep = 10,
       this.strokeWidth = 1,
+      this.fillEnabled = true,
       this.fillColor = Colors.lightBlue,
       this.fillOpactiy = 0.5,
       this.verticalLineEnabled = false,
@@ -121,14 +157,20 @@ class SplineChart extends StatelessWidget {
             size: Size(this.width, this.height),
             painter: _SplineChartPainter(
               lineColor: this.lineColor,
+              gridLinesEnabled: this.gridLinesEnabled,
               gridLineColor: this.gridLineColor,
               textColor: this.textColor,
               textSize: this.textSize,
               values: this.values,
+              drawXAxis: this.drawXAxis,
+              drawYAxis: this.drawYAxis,
               xStart: this.xStart,
               xEnd: this.xEnd,
+              yStart: this.xStart,
+              yEnd: this.xEnd,
               xStep: this.xStep,
               strokeWidth: this.strokeWidth,
+              fillEnabled: this.fillEnabled,
               fillColor: this.fillColor,
               fillOpactiy: this.fillOpactiy,
               verticalLineColor: this.verticalLineColor,
@@ -148,15 +190,21 @@ class SplineChart extends StatelessWidget {
 
 class _SplineChartPainter extends CustomPainter {
   final Color lineColor;
+  final bool gridLinesEnabled;
   final Color gridLineColor;
   final Color textColor;
   final double textSize;
+  final bool fillEnabled;
   final Color fillColor;
   final double fillOpactiy;
   final Map<double, double> values;
-  final xStart;
-  final xEnd;
-  final xStep;
+  final bool drawXAxis;
+  final bool drawYAxis;
+  final double xStart;
+  final double xEnd;
+  final double? yStart;
+  final double? yEnd;
+  final double xStep;
   final double strokeWidth;
   final bool verticalLineEnabled;
   final double verticalLinePosition;
@@ -170,14 +218,20 @@ class _SplineChartPainter extends CustomPainter {
 
   _SplineChartPainter({
     required this.lineColor,
+    required this.gridLinesEnabled,
     required this.gridLineColor,
     required this.textColor,
     required this.textSize,
     required this.values,
+    required this.drawXAxis,
+    required this.drawYAxis,
     required this.xStart,
     required this.xEnd,
+    required this.yStart,
+    required this.yEnd,
     required this.xStep,
     required this.strokeWidth,
+    required this.fillEnabled,
     required this.fillColor,
     required this.fillOpactiy,
     required this.verticalLineEnabled,
@@ -210,10 +264,15 @@ class _SplineChartPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth;
 
-    double yMin = double.infinity, yMax = double.negativeInfinity;
+    double yMin = yStart ?? double.infinity,
+        yMax = yEnd ?? double.negativeInfinity;
     values.forEach((key, value) {
-      yMin = min(value, yMin);
-      yMax = max(value, yMax);
+      if (yStart == null) {
+        yMin = min(value, yMin);
+      }
+      if (yEnd == null) {
+        yMax = max(value, yMax);
+      }
     });
 
     double yStep = _calcStepSize(yMax - yMin, 20);
@@ -235,46 +294,55 @@ class _SplineChartPainter extends CustomPainter {
     double paddingY = 40;
 
     // yAxis
-    canvas.drawLine(Offset(paddingX, 0),
-        Offset(paddingX, size.height - paddingY), axisLinePaint);
+    if (drawYAxis) {
+      canvas.drawLine(Offset(paddingX, 0),
+          Offset(paddingX, size.height - paddingY), axisLinePaint);
+    }
     // xAxis
-    canvas.drawLine(Offset(paddingX, size.height - paddingY),
-        Offset(size.width, size.height - paddingY), axisLinePaint);
+    if (drawXAxis) {
+      canvas.drawLine(Offset(paddingX, size.height - paddingY),
+          Offset(size.width, size.height - paddingY), axisLinePaint);
+    }
 
     intl.NumberFormat numberFormat = intl.NumberFormat.decimalPattern('hi');
 
-    // draw vertical grid lines
     double xRatio = (size.width - paddingX) / (this.xEnd - this.xStart);
-    for (double x = this.xStart; x <= this.xEnd; x += this.xStep) {
-      canvas.drawLine(Offset(x * xRatio + paddingX, 0),
-          Offset(x * xRatio + paddingX, size.height - paddingY), gridLinePaint);
-
-      TextSpan span = TextSpan(
-          style: TextStyle(color: this.textColor, fontSize: this.textSize),
-          text: numberFormat.format(x.floor()));
-      TextPainter tp =
-          TextPainter(text: span, textDirection: TextDirection.ltr);
-      tp.layout();
-      tp.paint(
-          canvas,
-          Offset(x * xRatio + paddingX - tp.width / 2,
-              size.height - paddingY + 5));
-    }
-
-    // draw horizontal grid lines
     double yRatio = (size.height - paddingY) / (yMax - yMin);
-    for (double y = yMin; y <= (yMax); y += yStep) {
-      double yPos = (size.height - paddingY) - ((y - yMin) * yRatio);
-      canvas.drawLine(
-          Offset(paddingX, yPos), Offset(size.width, yPos), gridLinePaint);
 
-      TextSpan span = TextSpan(
-          style: TextStyle(color: this.textColor, fontSize: this.textSize),
-          text: numberFormat.format(y.floor()));
-      TextPainter tp =
-          TextPainter(text: span, textDirection: TextDirection.ltr);
-      tp.layout();
-      tp.paint(canvas, Offset(paddingX - tp.width - 5, yPos - tp.height / 2));
+    // draw vertical grid lines
+    if (gridLinesEnabled) {
+      for (double x = this.xStart; x <= this.xEnd; x += this.xStep) {
+        canvas.drawLine(
+            Offset(x * xRatio + paddingX, 0),
+            Offset(x * xRatio + paddingX, size.height - paddingY),
+            gridLinePaint);
+
+        TextSpan span = TextSpan(
+            style: TextStyle(color: this.textColor, fontSize: this.textSize),
+            text: numberFormat.format(x.floor()));
+        TextPainter tp =
+            TextPainter(text: span, textDirection: TextDirection.ltr);
+        tp.layout();
+        tp.paint(
+            canvas,
+            Offset(x * xRatio + paddingX - tp.width / 2,
+                size.height - paddingY + 5));
+      }
+
+      // draw horizontal grid lines
+      for (double y = yMin; y <= (yMax); y += yStep) {
+        double yPos = (size.height - paddingY) - ((y - yMin) * yRatio);
+        canvas.drawLine(
+            Offset(paddingX, yPos), Offset(size.width, yPos), gridLinePaint);
+
+        TextSpan span = TextSpan(
+            style: TextStyle(color: this.textColor, fontSize: this.textSize),
+            text: numberFormat.format(y.floor()));
+        TextPainter tp =
+            TextPainter(text: span, textDirection: TextDirection.ltr);
+        tp.layout();
+        tp.paint(canvas, Offset(paddingX - tp.width - 5, yPos - tp.height / 2));
+      }
     }
 
     // sort values by x position
@@ -338,18 +406,20 @@ class _SplineChartPainter extends CustomPainter {
       });
     }
 
-    Path fillPath = Path()..addPath(path, Offset.zero);
-    fillPath.relativeLineTo(strokeWidth / 2, 0.0);
-    fillPath.lineTo(size.width, size.height - paddingY);
-    fillPath.lineTo(size.width + strokeWidth / 2, size.height - paddingY);
-    fillPath.lineTo(paddingX, size.height - paddingY);
-    fillPath.close();
+    if (fillEnabled) {
+      Path fillPath = Path()..addPath(path, Offset.zero);
+      fillPath.relativeLineTo(strokeWidth / 2, 0.0);
+      fillPath.lineTo(size.width, size.height - paddingY);
+      fillPath.lineTo(size.width + strokeWidth / 2, size.height - paddingY);
+      fillPath.lineTo(paddingX, size.height - paddingY);
+      fillPath.close();
 
-    Paint fillPaint = Paint()
-      ..strokeWidth = 0.0
-      ..color = fillColor.withOpacity(fillOpactiy)
-      ..style = PaintingStyle.fill;
-    canvas.drawPath(fillPath, fillPaint);
+      Paint fillPaint = Paint()
+        ..strokeWidth = 0.0
+        ..color = fillColor.withOpacity(fillOpactiy)
+        ..style = PaintingStyle.fill;
+      canvas.drawPath(fillPath, fillPaint);
+    }
 
     if (verticalLineEnabled) {
       final verticalLinePaint = Paint()
