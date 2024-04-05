@@ -15,6 +15,12 @@ class SplineChart extends StatelessWidget {
   /// Height of the chart
   final double height;
 
+  /// Padding on the X axis
+  final double paddingX;
+  
+  /// Padding on the Y axis
+  final double paddingY;
+
   /// Line chart values
   ///
   /// Each key in the hash map represents the X position and it's value as the Y position
@@ -120,6 +126,8 @@ class SplineChart extends StatelessWidget {
       required this.values,
       this.width = 320.0,
       this.height = 200.0,
+      this.paddingX = 50.0,
+      this.paddingY = 40.0,
       this.lineColor = Colors.black,
       this.gridLinesEnabled = true,
       this.gridLineColor = Colors.grey,
@@ -156,6 +164,8 @@ class SplineChart extends StatelessWidget {
         child: CustomPaint(
             size: Size(this.width, this.height),
             painter: _SplineChartPainter(
+              paddingX: this.paddingX,
+              paddingY: this.paddingY,
               lineColor: this.lineColor,
               gridLinesEnabled: this.gridLinesEnabled,
               gridLineColor: this.gridLineColor,
@@ -166,8 +176,8 @@ class SplineChart extends StatelessWidget {
               drawYAxis: this.drawYAxis,
               xStart: this.xStart,
               xEnd: this.xEnd,
-              yStart: this.xStart,
-              yEnd: this.xEnd,
+              yStart: this.yStart,
+              yEnd: this.yEnd,
               xStep: this.xStep,
               strokeWidth: this.strokeWidth,
               fillEnabled: this.fillEnabled,
@@ -189,6 +199,8 @@ class SplineChart extends StatelessWidget {
 }
 
 class _SplineChartPainter extends CustomPainter {
+  final double paddingX;
+  final double paddingY;
   final Color lineColor;
   final bool gridLinesEnabled;
   final Color gridLineColor;
@@ -217,6 +229,8 @@ class _SplineChartPainter extends CustomPainter {
   final Color circleStrokeColor;
 
   _SplineChartPainter({
+    required this.paddingX,
+    required this.paddingY,
     required this.lineColor,
     required this.gridLinesEnabled,
     required this.gridLineColor,
@@ -256,6 +270,7 @@ class _SplineChartPainter extends CustomPainter {
     else if (magMsd > 1) magMsd = 2;
     return magMsd * magPow;
   }
+    
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -289,9 +304,6 @@ class _SplineChartPainter extends CustomPainter {
       ..color = gridLineColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth - strokeWidth / 2;
-
-    double paddingX = 50;
-    double paddingY = 40;
 
     // yAxis
     if (drawYAxis) {
